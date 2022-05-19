@@ -31,10 +31,32 @@ async function run(){
             res.send(result);
         });
 
+        app.get('/available', async(req,res)=>{
+            const date = req.query.date;
+            //step1. get all services
+            const services = await servicesCollection.find().toArray();
+
+            //step 2 get the booking of the day
+            const query = {date: date};
+            const bookings = await bookingCollection.find(query).toArray();
+
+            //step3 for each service find boookings for that service
+            services.forEach(service => {
+                const serviceBookings = bookings.filter(b => b.treatment === service.name);
+                const booked = serviceBookings.map(s => s.slot);
+                // service.booked = booked;
+
+                // select those slots that are not in bookedSlots finding availbale slots
+                const available = service.slots.filter(s => !booked.includes(s));
+                service.slots = available;
+            })
+            res.send(services);
+        })
+
         app.post('/booking', async(req,res)=>{
             const booking = req.body;
-            const query = {treatment: booking.treatment, date: booking.date, patient: booking.patient};
-            const exist = await bookingCollection.findOne(query);
+            const query = {treatment: booking.treatment, date: booking.date, patient: booking.patient}; //same patient same day te same treatment dite  parbe na setar jonno query.
+            const exist = await bookingCollection.findOne(query); // database e find kortesi query diye j oi user er oi date e oi treatment ache kina tahkle false dibe.
             if(exist){
                 return res.send({success: false, booking: exist})
             }
