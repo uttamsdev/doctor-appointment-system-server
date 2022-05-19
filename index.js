@@ -31,6 +31,16 @@ async function run(){
             res.send(result);
         });
 
+        //mybookings
+        app.get('/booking', async(req, res) => {
+            //patient = email address in database
+            const patient = req.query.patient;
+            const query = {patient: patient};
+            const bookings = await bookingCollection.find(query).toArray();
+            res.send(bookings);
+        })
+
+
         app.get('/available', async(req,res)=>{
             const date = req.query.date;
             //step1. get all services
