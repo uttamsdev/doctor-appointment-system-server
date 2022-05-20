@@ -40,6 +40,21 @@ async function run() {
     const servicesCollection = client.db("doctors").collection("services");
     const bookingCollection = client.db("doctors").collection("bookings");
     const userCollection = client.db("doctors").collection("users");
+    const doctorCollection = client.db("doctors").collection("doctor");
+
+
+    const verifyAdmin = async(req, res, next) => {
+      const requester = req.decoded.email;
+      const requesterAccount = await userCollection.findOne({
+        email: requester,
+      });
+      if (requesterAccount.role === "admin"){
+        next();
+      }
+      else{
+        res.status(403).send({message: 'forbidden access'});
+      }
+    }
 
     //get all users form DB
     app.get("/user", verifyJWT, async (req, res) => {
@@ -54,23 +69,15 @@ async function run() {
       res.send({admin: isAdmin})
     })
 
-    app.put("/user/admin/:email", verifyJWT, async (req, res) => {
+    app.put("/user/admin/:email", verifyJWT, verifyAdmin, async (req, res) => {
+      //verifying admin using middleware
       const email = req.params.email;
-      const requester = req.decoded.email;
-      const requesterAccount = await userCollection.findOne({
-        email: requester,
-      });
-      if (requesterAccount.role === "admin") {
         const filter = { email: email };
         const updateDoc = {
           $set: { role: "admin" },
         };
         const result = await userCollection.updateOne(filter, updateDoc);
         res.send(result);
-      }
-      else {
-         res.status(403).send({message: 'Forbidden'});
-      }
     });
 
     //storing user email to database
@@ -93,7 +100,8 @@ async function run() {
 
     app.get("/service", async (req, res) => {
       const query = {};
-      const cursor = servicesCollection.find(query);
+      const cursor = servicesCollection.find(query).project({name: 1}); //.project diye service theke sudo name field select kortesi.. project er moddeh jeta dibo segula select hobe only.. 1 value dite hobe. select korte.
+      
       const result = await cursor.toArray();
       res.send(result);
     });
@@ -149,6 +157,13 @@ async function run() {
       const result = await bookingCollection.insertOne(booking);
       res.send({ success: true, result });
     });
+
+    //adding doctor details in databse
+    app.post('/doctor', verifyJWT, verifyAdmin, async(req,res) => {
+      const doctor = req.body;
+      const result = await doctorCollection.insertOne(doctor);
+      res.send(result);
+    })
   } finally {
     // client.close();
   }
