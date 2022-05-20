@@ -7,7 +7,7 @@ const res = require("express/lib/response");
 const app = express();
 const port = process.env.PORT || 5000;
 
-//middleware
+//middlewares
 app.use(cors());
 app.use(express.json());
 require("dotenv").config();
